@@ -1,0 +1,657 @@
+<!--
+
+index.html
+Main user interface for controlling the gantry robot of the digital twin testbed described in:
+Čustović, I. et al. (2026). Experimenting with Digital Twins: a LEGO®-based Modular Testbed for Systematic Evaluation. EC3 Conference 2026. Corfu, Greece. Available at: https://doi.org/10.35490/EC3.2026.233.
+
+Copyright (c) 2026 Irfan Čustović, Emilio Murillo Sierra, Ranjith K. Soman, Daniel M. Hall | TU Delft
+Licensed under the MIT License.
+See the 'licenses/' folder in the repository root for details.
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Gantry Robot Dashboard</title>
+
+  {% include 'partialHTML/head-links.html' %}
+
+</head>
+
+<body class="bg-light vh-100 overflow-hidden">
+
+  <div id="dashboardShell" class="bg-white shadow vh-100 d-flex flex-column overflow-hidden">
+
+    <header class="p-3 border-bottom d-flex align-items-center justify-content-between flex-shrink-0">
+      <h5 class="mb-0 fw-bold">
+        <span id="agentID">--</span> Dashboard
+      </h5>
+      <div id="infoContainer" class="position-fixed bottom-0 start-50 translate-middle-x w-100 z-3 d-flex justify-content-center gap-3 p-3 mb-5 bg-transparent"></div>
+      <div class="d-flex align-items-center">
+        <a href="https://www.tudelft.nl" target="_blank"><img src="{{ request.url_for('templates', path='assets/img/TUDelft_logo.png') }}" alt="TU Delft Logo" style="height:32px; width:auto;"  class="me-4"></a>
+        <a href="https://www.smf4infra.net" target="_blank"><img src="{{ request.url_for('templates', path='assets/img/SMF4INFRA_Logo_Color.png') }}" alt="SMF4INFRA Logo" style="height:32px; width:auto;" class="me-2"></a>
+        <a href="/resetDB" class="link-danger" target="_blank">
+          <button class="btn btn-outline-danger ms-3">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </a>
+        <button id="fullscreen-btn" class="btn btn-secondary ms-3">
+          <i class="bi bi-fullscreen"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main area is split into the fixed status panel and the scrollable workflow panel. -->
+    <main class="flex-grow-1 overflow-hidden">
+      <div class="container-fluid h-100 p-0">
+        <div class="row g-0 h-100">
+
+          <!-- Status panel shows the active operation mode and the time spent in that mode. -->
+          <aside class="col-2 h-100 border-end bg-light d-flex flex-column overflow-auto">
+            <div class="p-3 flex-grow-1 d-flex flex-column">
+              <h6 class="fw-bold mb-3 flex-shrink-0 text-center">Operation Mode</h6>
+
+              <div class="mt-auto border-top p-3">
+                <p class="timer mb-0 text-center" id="timer">00:00:00</p>
+              </div>
+              <div class="d-flex flex-column gap-2 flex-grow-1" id="agentMode" style="min-height: 300px;">
+
+                <div class="flex-fill bg-success text-white fw-semibold d-flex align-items-center justify-content-center py-3" id="Idle">
+                  <i class="bi bi-dash-circle-dotted fs-3 me-2"></i>Idle
+                </div>
+
+                <div class="flex-fill bg-primary text-white fw-semibold d-flex align-items-center justify-content-center py-3" id="Moving">
+                  <i class="bi bi-arrows-move fs-3 me-2"></i>Moving
+                </div>
+
+                <div class="flex-fill bg-primary text-white fw-semibold d-flex align-items-center justify-content-center py-3" id="PickingUp">
+                  <i class="bi bi-box-arrow-up fs-3 me-2"></i>Picking Up
+                </div>
+
+                <div class="flex-fill bg-primary text-white fw-semibold d-flex align-items-center justify-content-center py-3" id="DroppingOff">
+                  <i class="bi bi-box-arrow-in-down fs-3 me-2"></i>Dropping Off
+                </div>
+
+                <div class="flex-fill bg-warning fw-semibold d-flex align-items-center justify-content-center py-3" id="Calibrating">
+                  <i class="bi bi-gear-wide-connected fs-3 me-2"></i>Calibrating
+                </div>
+
+              </div>
+            </div>
+          </aside>
+
+          <!-- Workflow panel contains operator controls and the live operation queue. -->
+          <section class="col h-100 overflow-auto">
+            <div class="container-fluid p-3">
+
+                  <!-- Operators choose the source and destination before submitting a transport request. -->
+                  <div class="row g-3 mb-3 align-items-stretch">
+                    <div class="col-6 d-flex flex-column">
+                      <div class="card list-card flex-fill mb-1">
+                        <div class="card-header p-2 text-center">
+                          <span class="fw-semibold text-center"><i class="bi bi-upload me-2"></i> Pick-up Location</span>
+                        </div>
+                        <div class="card-body">
+                          <fieldset>
+                            <legend class="visually-hidden">Choose pick-up location</legend>
+                            <div class="btn-group w-100 mb-2" role="group" aria-label="Pick-up locations row 1">
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationA1" value="A1" autocomplete="off" checked>
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationA1">A1</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationB1" value="B1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationB1">B1</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationC1" value="C1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationC1">C1</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationD1" value="D1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationD1">D1</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationE1" value="E1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationE1">E1</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationF1" value="F1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationF1">F1</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationG1" value="G1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationG1">G1</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationH1" value="H1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationH1">H1</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationI1" value="I1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationI1">I1</label>
+                            </div>
+
+                            <div class="btn-group w-100" role="group" aria-label="Pick-up locations row 2">
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationA2" value="A2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationA2">A2</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationB2" value="B2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationB2">B2</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationC2" value="C2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationC2">C2</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationD2" value="D2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationD2">D2</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationE2" value="E2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationE2">E2</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationF2" value="F2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationF2">F2</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationG2" value="G2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationG2">G2</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationH2" value="H2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationH2">H2</label>
+
+                              <input type="radio" class="btn-check" name="pickUpLocation" id="pickUpLocationI2" value="I2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="pickUpLocationI2">I2</label>
+                            </div>
+                          </fieldset>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-6 d-flex flex-column">
+                      <div class="card list-card flex-fill mb-1">
+                        <div class="card-header p-2 text-center">
+                          <span class="fw-semibold text-center"><i class="bi bi-download me-2"></i> Drop-off Location</span>
+                        </div>
+                        <div class="card-body">
+                          <fieldset>
+                            <legend class="visually-hidden">Choose drop-off location</legend>
+                            <div class="btn-group w-100 mb-2" role="group" aria-label="Drop-off locations row 1">
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationA1" value="A1" autocomplete="off" checked>
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationA1">A1</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationB1" value="B1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationB1">B1</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationC1" value="C1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationC1">C1</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationD1" value="D1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationD1">D1</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationE1" value="E1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationE1">E1</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationF1" value="F1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationF1">F1</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationG1" value="G1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationG1">G1</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationH1" value="H1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationH1">H1</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationI1" value="I1" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationI1">I1</label>
+                            </div>
+
+                            <div class="btn-group w-100" role="group" aria-label="Drop-off locations row 2">
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationA2" value="A2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationA2">A2</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationB2" value="B2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationB2">B2</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationC2" value="C2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationC2">C2</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationD2" value="D2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationD2">D2</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationE2" value="E2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationE2">E2</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationF2" value="F2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationF2">F2</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationG2" value="G2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationG2">G2</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationH2" value="H2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationH2">H2</label>
+
+                              <input type="radio" class="btn-check" name="dropOffLocation" id="dropOffLocationI2" value="I2" autocomplete="off">
+                              <label class="btn btn-outline-primary py-3 px-1" for="dropOffLocationI2">I2</label>
+                            </div>
+                          </fieldset>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Submits the selected pick-up and drop-off pair as one transport operation. -->
+                  <div class="row g-3 mb-4">
+                    <div class="col-12 d-flex">
+                      <button type="button" id="executeTransportBtn" class="btn btn-primary py-4 fs-5 fw-bold w-100">
+                        Execute Transport
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Calibration requests share one handler and identify their target through data-calibration-type. -->
+                  <div class="row g-3 mb-4">
+                    <div class="col-12 d-flex flex-column">
+                      <div class="btn-toolbar w-100" role="toolbar" aria-label="Toolbar with button groups">
+                        <div class="btn-group flex-fill gap-2" role="group" aria-label="First group">
+                          <button type="button" class="btn btn-warning py-4 fw-bold js-calibration-btn" data-calibration-type="Complete">Complete <br> Calibration</button>
+                          <button type="button" class="btn btn-warning py-4 fw-bold js-calibration-btn" data-calibration-type="Claw">Claw <br> Calibration</button>
+                          <button type="button" class="btn btn-warning py-4 fw-bold js-calibration-btn" data-calibration-type="Vertical">Vertical <br> Calibration</button>
+                          <button type="button" class="btn btn-warning py-4 fw-bold js-calibration-btn" data-calibration-type="Horizontal">Horizontal <br> Calibration</button>
+                          <button type="button" class="btn btn-warning py-4 fw-bold js-calibration-btn" data-calibration-type="Longitudinal">Longitudinal <br> Calibration</button>
+                          <button type="button" id="manualMaintenanceBtn" class="btn btn-danger py-4 fw-bold">
+                            <i class="bi bi-cone-striped small me-2"></i> Manual <br> Maintenance
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+
+                  <!-- Live operation queue is rebuilt from the latest API response on each refresh. -->
+                  <div class="row g-3 ">
+                    <div class="col-12 d-flex flex-column">
+                      <div class="card list-card flex-fill mb-0">
+                        <div class="card-body p-0 overflow-auto" style="min-height: 150px; max-height: 200px;">
+                          <div id="gantryRobotOperations" class="w-100"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                
+
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="bg-white border border-top text-dark text-center py-2 flex-shrink-0">
+      <div class="container-fluid small">
+        Copyright &copy; 2026 Irfan Čustović, Emilio Murillo Sierra, Ranjith K. Soman, Daniel M. Hall | TU Delft. Source code &amp; documentation: <a href="https://github.com/DigiConstructLab-TU-Delft/Digital-Twin-Testbed/" target="_blank">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Locks the UI while the gantry robot is paused for manual maintenance. -->
+  <div class="modal modal-lg fade" id="gantryRobotMaintenanceModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <p class="fs-2 modal-header text-center" style="display: block">Gantry robot stopped for manual maintenance.</p>
+        <div class="modal-body text-center">
+          <p class="h5 mb-4">Press "Continue" once the gantry robot is ready again.</p>
+          <button class="btn btn-success p-3" id="stopMaintenanceBtn" type="button">
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirms that an operator has placed the requested material before the gantry robot proceeds. -->
+  <div class="modal fade" id="itemModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Material ready to be picked up?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <h3 id="modalText" class="my-3 text-center"></h3>
+        </div>
+        <div class="modal-footer">
+          <div class="d-flex w-100">
+            <button class="btn btn-secondary fs-3 py-3 w-50 me-2" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-primary fs-3 py-3 w-50" id="confirmUpdateBtn">
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+  <script>
+    const API_URL = "{{ url_for('process_request') }}";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Centralized element lookups
+      const els = {
+        shell: document.getElementById("dashboardShell"),
+        agentId: document.getElementById("agentID"),
+        timer: document.getElementById("timer"),
+        agentMode: document.getElementById("agentMode"),
+        infoContainer: document.getElementById("infoContainer"),
+        gantryRobotOperations: document.getElementById("gantryRobotOperations"),
+        fullscreenBtn: document.getElementById("fullscreen-btn"),
+        executeTransportBtn: document.getElementById("executeTransportBtn"),
+        manualMaintenanceBtn: document.getElementById("manualMaintenanceBtn"),
+        stopMaintenanceBtn: document.getElementById("stopMaintenanceBtn"),
+        confirmUpdateBtn: document.getElementById("confirmUpdateBtn"),
+        calibrationBtns: document.querySelectorAll(".js-calibration-btn"),
+        maintenanceModal: document.getElementById("gantryRobotMaintenanceModal"),
+        itemModal: document.getElementById("itemModal"),
+        modalText: document.getElementById("modalText"),
+      };
+
+      const modals = {
+        maintenance: new bootstrap.Modal(els.maintenanceModal),
+        item: new bootstrap.Modal(els.itemModal),
+      };
+
+      // Backend uses this ID to correlate UI-triggered API calls with logs/debug traces.
+      function generateCallId() {
+        const random = Math.floor(1000 + Math.random() * 9000);
+        const timestamp = new Date()
+          .toISOString()
+          .replace(/[-:.]/g, "-")
+          .replace("T", "-")
+          .slice(0, 19);
+
+        return `${random}-${timestamp} from ${window.location.href}`;
+      }
+
+      // Sends all dashboard commands through the same API contract and raises an error on failure.
+      async function postRequest(functionName, parameters = {}) {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            call_id: generateCallId(),
+            function_name: functionName,
+            parameters,
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data?.message || `Request failed with status ${response.status}`);
+        }
+
+        return data;
+      }
+
+      function getCheckedValue(name) {
+        return document.querySelector(`input[name="${name}"]:checked`)?.value || "";
+      }
+
+      // Escape values before inserting API-provided content into template strings.
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      // Shows a temporary toast-like message at the bottom of the dashboard.
+      function showInfo(message, type = "info") {
+        const classes = {
+          success: "bg-success text-white",
+          warning: "bg-warning",
+          info: "bg-secondary text-white",
+          primary: "bg-primary text-white"
+        };
+
+        const alert = document.createElement("div");
+        alert.className = `${classes[type] || classes.info} small px-3 py-2 fw-bold shadow rounded`;
+        alert.role = "alert";
+        alert.innerHTML = `<i class="bi bi-info-circle"></i> ${escapeHtml(message)}`;
+
+        els.infoContainer.append(alert);
+
+        setTimeout(() => {
+          alert.classList.add("fade-out");
+          setTimeout(() => alert.remove(), 600);
+        }, 2000);
+      }
+
+      function setCurrentMode(mode) {
+        els.agentMode.querySelectorAll("div").forEach(div => {
+          div.classList.toggle("activeMode", div.id === mode);
+        });
+      }
+
+      function setTimer(text) {
+        els.timer.textContent = text;
+      }
+
+      function setAgentID(id) {
+        els.agentId.textContent = id;
+      }
+
+      // gantry robot operations arrive as positional arrays from the backend:
+      // [requestId, type, status, calibrationType/pickUp, dropOff, focus]
+      function renderOperationRow(operation) {
+        var requestId = operation[0];
+        var type = operation[1];
+        var status = operation[2];
+        var calibrationType = operation[3]; // For calibration rows, index 3 is calibrationType; for transport rows, it is pickUp.
+        var pickUp = operation[3];
+        var dropOff = operation[4];
+        var focus = operation[5];
+
+        if (focus === "") {
+          focus = "-";
+        }
+
+        if (type === "Calibration") {
+          return `
+            <tr>
+              <td>${escapeHtml(requestId)}</td>
+              <td>${escapeHtml(calibrationType)} ${escapeHtml(type)}</td>
+              <td>${escapeHtml(status)}</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+            </tr>
+          `;
+        } else {
+          return `
+            <tr>
+              <td>${escapeHtml(requestId)}</td>
+              <td>${escapeHtml(type)}</td>
+              <td>${escapeHtml(status)}</td>
+              <td>${escapeHtml(pickUp)}</td>
+              <td>${escapeHtml(dropOff)}</td>
+              <td>${escapeHtml(focus)}</td>
+            </tr>
+          `;
+        }
+      }
+
+      function populateGantryRobotOperations(data) {
+        const rows = Array.isArray(data) ? data : [];
+
+        els.gantryRobotOperations.innerHTML = `
+        <div class="table-responsive w-100">
+          <table class="table table-striped table-hover align-middle w-100 mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Request ID</th>
+                <th scope="col">Type</th>
+                <th scope="col">Status</th>
+                <th scope="col">Pick-up</th>
+                <th scope="col">Drop-off</th>
+                <th scope="col">Focus</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(renderOperationRow).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+      }
+
+      async function startManualMaintenance() {
+        try {
+          await postRequest("update_mode", { new_mode: "Maintenance" });
+          modals.maintenance.show();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      async function stopManualMaintenance() {
+        try {
+          await postRequest("update_mode", { new_mode: "Idle" });
+          modals.maintenance.hide();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      async function initiateTransport() {
+        const pickUpLocation = getCheckedValue("pickUpLocation");
+        const dropOffLocation = getCheckedValue("dropOffLocation");
+
+        if (!pickUpLocation || !dropOffLocation) {
+          showInfo("Choose a pick-up and drop-off location.", "warning");
+          return;
+        }
+
+        try {
+          const data = await postRequest("request_gantryRobotOperation", {
+            operationType: "Transport",
+            pickUpLocation,
+            dropOffLocation,
+          });
+
+          showInfo(data.results.message, "primary");
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      async function initiateCalibration(calibrationType) {
+        try {
+          const data = await postRequest("request_gantryRobotOperation", {
+            operationType: "Calibration",
+            calibrationType,
+          });
+
+          showInfo(data.results.message, "warning");
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      // API-originated open requests require operator confirmation once material is placed at the gantryRobot.
+      function checkElementPlacement(gantryRobotOperations) {
+        const firstOperation = Array.isArray(gantryRobotOperations) ? gantryRobotOperations[0] : null;
+        if (!Array.isArray(firstOperation)) return;
+
+        const requestId = firstOperation[0];
+        const status = firstOperation[2];
+        const focus = firstOperation[5];
+
+        if (!String(requestId).includes("API_") || status !== "Open") return;
+
+        els.modalText.innerHTML = `
+        <span class="rounded-3 fw-bold py-2 px-3 bg-primary text-white">
+          ${escapeHtml(focus)}
+        </span>
+      `;
+
+        els.itemModal.dataset.itemValue = requestId;
+        modals.item.show();
+      }
+
+      async function confirmUpdate() {
+        const requestId = els.itemModal.dataset.itemValue;
+        if (!requestId) return;
+
+        try {
+          await postRequest("confirm_elementPlacedForGantryRobotOperation", {
+            requestID: requestId,
+          });
+
+          delete els.itemModal.dataset.itemValue;
+          modals.item.hide();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      // Polls the backend for live mode, timer and operation queue updates.
+      async function fetchData() {
+        try {
+          const data = await postRequest("get_dataForUI");
+          const result = data.results || {};
+          const gantryRobotOperations = Array.isArray(result.gantryRobotOperations)
+            ? result.gantryRobotOperations
+            : [];
+
+          setCurrentMode(result.agentMode);
+          setTimer(result.timeInMode);
+          setAgentID(result.agentID);
+          populateGantryRobotOperations(gantryRobotOperations);
+          checkElementPlacement(gantryRobotOperations);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      // Uses server-rendered data-* attributes to avoid an empty UI before the first poll completes.
+      function applyInitialState() {
+        const data = els.shell.dataset;
+
+        if (data.initialMode) setCurrentMode(data.initialMode);
+        if (data.initialElapsed) setTimer(data.initialElapsed);
+        if (data.initialResourceId) setAgentID(data.initialResourceId);
+      }
+
+      function setupEventListeners() {
+        els.executeTransportBtn.addEventListener("click", initiateTransport);
+        els.manualMaintenanceBtn.addEventListener("click", startManualMaintenance);
+        els.stopMaintenanceBtn.addEventListener("click", stopManualMaintenance);
+        els.confirmUpdateBtn.addEventListener("click", confirmUpdate);
+
+        els.calibrationBtns.forEach(button => {
+          button.addEventListener("click", () => {
+            initiateCalibration(button.dataset.calibrationType);
+          });
+        });
+
+        els.fullscreenBtn.addEventListener("click", async () => {
+          try {
+            if (!document.fullscreenElement) {
+              await document.documentElement.requestFullscreen();
+              els.fullscreenBtn.innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
+            } else {
+              await document.exitFullscreen();
+              els.fullscreenBtn.innerHTML = '<i class="bi bi-fullscreen"></i>';
+            }
+          } catch (error) {
+            console.error(error);
+          }
+        });
+      }
+
+      applyInitialState();
+      setupEventListeners();
+
+      // Keep the dashboard synchronized with the gantry robot backend.
+      fetchData();
+      setInterval(fetchData, 1000);
+    });
+  </script>
+</body>
+
+</html>

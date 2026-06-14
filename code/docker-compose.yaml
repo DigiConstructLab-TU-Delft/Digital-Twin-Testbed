@@ -1,0 +1,117 @@
+# docker-compose.yaml
+# Definition of the docker services for the gantry robot of the digital twin testbed described in:
+# Čustović, I. et al. (2026). Experimenting with Digital Twins: a LEGO®-based Modular Testbed for Systematic Evaluation. EC3 Conference 2026. Corfu, Greece. Available at: https://doi.org/10.35490/EC3.2026.233.
+#
+# Copyright (c) 2026 Irfan Čustović, Emilio Murillo Sierra, Ranjith K. Soman, Daniel M. Hall | TU Delft
+# Licensed under the MIT License.
+# See the 'licenses/' folder in the repository root for details.
+
+
+name: DT-Testbed_Gantry-Robot
+
+services:
+  graphdb:
+    image: ontotext/graphdb:11.0.1
+    container_name: graphdb_gantry-robot
+    ports:
+      - "7200:7200"
+    environment:
+      GDB_HEAP_SIZE: ${GDB_HEAP_SIZE:-2g}
+    volumes:
+      # Persist all GraphDB data/configs for easy backup / visibility
+      - ./graphdb/data:/opt/graphdb/home
+      # Workbench "Server files" import dir
+      - ./graphdb/imports:/root/graphdb-import:ro
+      # License file
+      - ./license-file/graphdb.license:/opt/graphdb/home/conf/graphdb.license:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7200/repositories" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # One-shot init that creates the repository "prodRepo" if it doesn't exist
+  graphdb-init:
+    image: curlimages/curl:8.11.1
+    container_name: graphdb-init_gantry-robot
+    depends_on:
+      graphdb:
+        condition: service_healthy
+    volumes:
+      - ./graphdb/repo-configs:/config:ro
+    entrypoint: ["/bin/sh","-c"]
+    command:
+      - |
+        set -e
+
+        echo "Checking if 'prodRepo' exists…"
+        curl -fsS http://graphdb:7200/rest/repositories >/tmp/repos.json
+        if grep -q '"id":"prodRepo"' /tmp/repos.json; then
+          echo "Repo 'prodRepo' already exists."
+          exit 0
+        fi
+
+        echo "Creating 'prodRepo' with multipart/form-data…"
+        # Let -F set the multipart headers; don't set Content-Type yourself
+        if curl -fS -X POST \
+          "http://graphdb:7200/rest/repositories?forceCreation=true" \
+          -H "Accept: application/json" \
+          -F "config=@/config/prodRepo.ttl"; then
+          echo "Created 'prodRepo'."
+          exit 0
+        fi
+
+        echo "Create failed. Response body:"
+        curl -s -X POST \
+          "http://graphdb:7200/rest/repositories?forceCreation=true" \
+          -H "Accept: application/json" \
+          -F "config=@/config/prodRepo.ttl" || true
+        exit 3
+    restart: "no"
+
+  fastapi:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: fastapi_gantry-robot
+    image: gantry-robot:1.0
+    depends_on:
+      graphdb:
+        condition: service_healthy
+      graphdb-init:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    volumes:
+      - ./fastapi:/code
+
+  motors:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: fastapi_gantry-robot_motors
+    image: gantry-robot_motors:1.0
+    depends_on:
+      fastapi:
+        condition: service_healthy
+    env_file:
+      - .env
+    devices:
+      - /dev:/dev
+    privileged: true
+    environment:
+      API_BASE_URL: http://fastapi:8000
+    command: python -m app.gantry_host
+    restart: unless-stopped
+    volumes:
+      - ./fastapi:/code
+      - /dev:/dev

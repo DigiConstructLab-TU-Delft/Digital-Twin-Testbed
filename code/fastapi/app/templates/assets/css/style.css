@@ -1,0 +1,87 @@
+/*
+
+index.html
+Supplementary file for the user interface of the gantry robot of the digital twin testbed described in:
+Čustović, I. et al. (2026). Experimenting with Digital Twins: a LEGO®-based Modular Testbed for Systematic Evaluation. EC3 Conference 2026. Corfu, Greece. Available at: https://doi.org/10.35490/EC3.2026.233.
+
+Copyright (c) 2026 Irfan Čustović, Emilio Murillo Sierra, Ranjith K. Soman, Daniel M. Hall | TU Delft
+Licensed under the MIT License.
+See the 'licenses/' folder in the repository root for details.
+
+*/
+
+.header {
+  padding: 20px 0;
+  background-color: #f1f1f1;
+  /* Padding for spacing */
+}
+
+.header img {
+  max-width: 300px;
+  /* Set a max width for the image */
+}
+
+.container {
+  padding-top: 50px;
+}
+
+.card {
+  margin-bottom: 30px;
+}
+
+.card-icon {
+  font-size: 3rem;
+  color: #007bff;
+  margin-bottom: 15px;
+}
+
+.h-10 {
+  height: 10% !important;
+}
+
+.h-20 {
+  height: 20% !important;
+}
+
+.h-30 {
+  height: 30% !important;
+}
+
+.h-40 {
+  height: 40% !important;
+}
+
+.h-60 {
+  height: 60% !important;
+}
+
+.h-70 {
+  height: 70% !important;
+}
+
+.h-80 {
+  height: 80% !important;
+}
+
+.h-90 {
+  height: 90% !important;
+}
+
+
+#agentMode div {
+  filter: saturate(0)
+}
+
+#agentMode div.activeMode {
+  filter: saturate(1)
+}
+
+footer {
+  bottom: 0;
+  width: 100%;
+  text-align: center;
+  background-color: #f1f1f1;
+  padding: 10px;
+}
+
+.min-h-0 { min-height: 0 !important; }
