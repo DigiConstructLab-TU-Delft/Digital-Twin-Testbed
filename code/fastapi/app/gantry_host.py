@@ -412,7 +412,7 @@ async def calibrate_longitudinal():
     )
 
     longitudinal_motor.plimit(1)
-    longitudinal_motor.run_for_degrees(-3750, speed=20)
+    longitudinal_motor.run_for_degrees(-3810, speed=20)
     longitudinal_motor.plimit(0.6)
 
 
