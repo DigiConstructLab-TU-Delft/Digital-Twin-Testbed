@@ -233,8 +233,18 @@ See the 'licenses/' folder in the repository root for details.
                   </div>
 
                   <!-- Submits the selected pick-up and drop-off pair as one transport operation. -->
-                  <div class="row g-3 mb-4">
-                    <div class="col-12 d-flex">
+                  <div class="row g-3 mb-4 align-items-stretch">
+                    <div class="col-6 d-flex">
+                      <input
+                        type="text"
+                        id="transportFocusInput"
+                        class="form-control py-4 fs-5"
+                        placeholder="Type here the ID of the load to be transported (optional)"
+                        aria-label="Transport focus"
+                      >
+                    </div>
+
+                    <div class="col-6 d-flex">
                       <button type="button" id="executeTransportBtn" class="btn btn-primary py-4 fs-5 fw-bold w-100">
                         Execute Transport
                       </button>
@@ -340,6 +350,7 @@ See the 'licenses/' folder in the repository root for details.
         gantryRobotOperations: document.getElementById("gantryRobotOperations"),
         fullscreenBtn: document.getElementById("fullscreen-btn"),
         executeTransportBtn: document.getElementById("executeTransportBtn"),
+        transportFocusInput: document.getElementById("transportFocusInput"),
         manualMaintenanceBtn: document.getElementById("manualMaintenanceBtn"),
         stopMaintenanceBtn: document.getElementById("stopMaintenanceBtn"),
         confirmUpdateBtn: document.getElementById("confirmUpdateBtn"),
@@ -520,19 +531,26 @@ See the 'licenses/' folder in the repository root for details.
       async function initiateTransport() {
         const pickUpLocation = getCheckedValue("pickUpLocation");
         const dropOffLocation = getCheckedValue("dropOffLocation");
+        const focus = els.transportFocusInput.value.trim();
 
         if (!pickUpLocation || !dropOffLocation) {
           showInfo("Choose a pick-up and drop-off location.", "warning");
           return;
         }
 
-        try {
-          const data = await postRequest("request_gantryRobotOperation", {
-            operationType: "Transport",
-            pickUpLocation,
-            dropOffLocation,
-          });
+        const parameters = {
+          operationType: "Transport",
+          pickUpLocation,
+          dropOffLocation,
+        };
 
+        if (focus !== "") {
+          parameters.focus = focus;
+        }
+
+        try {
+          const data = await postRequest("request_gantryRobotOperation", parameters);
+          els.transportFocusInput.value = "";
           showInfo(data.results.message, "primary");
         } catch (error) {
           console.error(error);
